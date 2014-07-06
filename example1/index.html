@@ -17,6 +17,7 @@
     var images = [ "https://i.imgur.com/adCmISK.jpg", "https://i.imgur.com/AedZQ4N.jpg" ];
 
     // We initialize GLSL Transition to work with a "Cube" transition on the provided canvas
+    // Transition source: https://glsl.io/transition/ee15128c2b87d0e74dee
     var canvas = document.getElementById("slideshow");
     var Transition = GlslTransition(canvas);
     var transition = Transition("#ifdef GL_ES\n precision highp float;\n #endif\n uniform sampler2D from,to;uniform float progress,persp,unzoom,reflection,floating;uniform vec2 resolution;vec2 f(vec2 a){return a*vec2(1,-1.2)+vec2(0,-floating/1e2);}bool g(vec2 a){return all(lessThan(vec2(0),a))&&all(lessThan(a,vec2(1)));}vec4 h(vec2 a,vec2 b,vec2 c){vec4 d=vec4(0,0,0,1);b=f(b);if(g(b))d+=mix(vec4(0),texture2D(from,b),reflection*mix(1.,0.,b.y));c=f(c);if(g(c))d+=mix(vec4(0),texture2D(to,c),reflection*mix(1.,0.,c.y));return d;}vec2 i(vec2 a,float b,float c){float d=mix(a.x,1.-a.x,c);return (vec2(d,(a.y-.5*(1.-b)*d)/(1.+(b-1.)*d))-vec2(.5-distance(c,.5),0))*vec2(.5/distance(c,.5)*(c<.5?1.:-1.),1)+vec2(c<.5?0.:1.,0);}void main(){vec2 a,c,d,e;a=gl_FragCoord.xy/resolution.xy;float b=unzoom*2.*(.5-distance(.5,progress));c=-b*.5+(1.+b)*a;d=i((c-vec2(progress,0))/vec2(1.-progress,1),1.-mix(progress,0.,persp),0.);e=i(c/vec2(progress,1),mix(pow(progress,2.),1.,persp),1.);if(g(d))gl_FragColor=texture2D(from,d);else if(g(e))gl_FragColor=texture2D(to,e);else gl_FragColor=h(a,d,e);}", {
