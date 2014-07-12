@@ -84,7 +84,6 @@
 
     var statsElt = document.getElementById("stats");
     function log (stats, transition) {
-      console.log(transition);
       statsElt.innerHTML = '<dl><dt>Previous Transition was...</dt><dd><em>'+transition.name+'</em> by <strong>'+transition.owner+'</strong> – <a href="'+transition.html_url+'">link</a></dd><dt>Performed at</dt><dd><strong>'+Math.floor(1000 * stats.frames / stats.elapsedTime)+' FPS</strong></dd><dd>'+JSON.stringify(stats)+'</dd></dl>';
     }
   }());</script>
