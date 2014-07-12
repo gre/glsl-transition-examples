@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Standalone Example 2: looping over glsl-transitions</title>
+  <style>
+    dt {
+      margin-top: 10px;
+      font-weight: bold;
+      font-style: italic;
+    }
+    dt:after {
+      content: ": ";
+    }
+    dd {
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="slideshow" width=600 height=400></canvas>
+  <div id="stats"></div>
+
+  <script src="./glsl-transition.js"></script>
+  <script src="./glsl-transitions.js"></script>
+
+  <script>(function(){
+    // We use 2 images for a simple transition (imgur hosted)
+    var images = [ "https://i.imgur.com/adCmISK.jpg", "https://i.imgur.com/AedZQ4N.jpg" ];
+
+    var canvas = document.getElementById("slideshow");
+    var Transition = GlslTransition(canvas);
+
+    // We are for now just interested by the transitions which doesn't use texture custom parameter (more complex case that we will see later)
+    var transitions = filterWithoutCustomSampler2D(GlslTransitions, function (t) {
+      try {
+        return { transition: Transition(t.glsl, t.uniforms), data: t };
+      }
+      catch (e) {
+        console.error(e.stack);
+        console.log(t);
+      }
+    });
+
+    // Load the images and transition over all glsl-transitions
+    GlslTransition.Q.all(images.map(loadImage))
+      .spread(function start (from, to) {
+
+        return (function loop (transitionIndex, from, to) {
+          return transitions[transitionIndex].transition({ from: from, to: to }, 2000)
+            .delay(500) // we pause 0.5 second before the next image
+            .then(function (stats) {
+              log(stats, transitions[transitionIndex].data);
+              // We loop to the next transition (rotated iteration + invert the from/to images)
+              return loop(transitionIndex+1 < transitions.length ? transitionIndex+1 : 0, to, from);
+            });
+        })(0, from, to);
+
+      })
+      .done();
+
+    // This method filters only the transition which doesn't use custom uniform textures
+    // It also map and filter the transition with the provided mapFilter (which is used for filtering only the compiling transitions – next versions of glsl-transitions will ensure all transitions are compiling)
+    function filterWithoutCustomSampler2D (transitions, mapFilter) {
+      return transitions.filter(function (t) {
+        for (var k in t.uniforms)
+          if (typeof t.uniforms[k] === "string")
+            return false;
+        return true;
+      }).map(mapFilter).filter(function (t) { return !!t; });
+    }
+
+    // Image Loader. See also "qimage" : https://github.com/gre/qimage
+    function loadImage (src) {
+      var d = GlslTransition.Q.defer();
+      var img = new Image();
+      img.crossOrigin = "Anonymous";
+      img.onload = function (e) { d.resolve(img); };
+      img.onabort = img.onerror = d.reject;
+      img.src = src;
+      return d.promise;
+    }
+
+    var statsElt = document.getElementById("stats");
+    function log (stats, transition) {
+      console.log(transition);
+      statsElt.innerHTML = '<dl><dt>Previous Transition was...</dt><dd><em>'+transition.name+'</em> by <strong>'+transition.owner+'</strong> – <a href="'+transition.html_url+'">link</a></dd><dt>Performed at</dt><dd><strong>'+Math.floor(1000 * stats.frames / stats.elapsedTime)+' FPS</strong></dd><dd>'+JSON.stringify(stats)+'</dd></dl>';
+    }
+  }());</script>
+
+
+</body>
+</html>
