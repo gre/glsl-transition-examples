@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Standalone Example 3: looping over glsl-transitions and multiple images</title>
+  <style>
+  html,body {
+    background: #222;
+    color: #eee;
+  }
+  canvas {
+    background: #000;
+    border: 1px solid #000;
+  }
+  #slideshow {
+    position: relative;
+    color: #fff;
+    text-shadow: 0px 0px 1px #000;
+    margin: 50px 0;
+  }
+  #slideshow .title {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+  }
+  #wrapper {
+    margin: 0 auto;
+    width: 512px;
+  }
+  </style>
+</head>
+<body>
+
+  <div id="wrapper">
+    <div id="slideshow">
+      <canvas id="viewport" width=512 height=384></canvas>
+      <span class="title">
+        <em class="name">...</em> by <strong class="author">...</strong>
+      </span>
+    </div>
+  </div>
+
+  <script src="../glsl-transition.js"></script>
+  <script src="../glsl-transitions.js"></script>
+  <script src="../IMAGES.js"></script>
+
+  <script>(function(){
+    var images = IMAGES.map(function (src) { return "../"+src; });
+
+    var canvas = document.getElementById("viewport");
+    var nameElt = document.querySelector("#slideshow .name");
+    var authorElt = document.querySelector("#slideshow .author");
+    var Transition = GlslTransition(canvas);
+
+    var transitions = filterWithoutCustomSampler2D(GlslTransitions, function (t) {
+      try {
+        return { transition: Transition(t.glsl, t.uniforms), data: t };
+      }
+      catch (e) {
+        console.error(e.stack);
+        console.log(t);
+      }
+    });
+
+    // Load the images and transition over all glsl-transitions
+    GlslTransition.Q.all(images.map(loadImage))
+      .then(function start (images) {
+
+        return (function loop (transitionIndex) {
+          var transition = transitions[transitionIndex];
+          nameElt.textContent = transition.data.name;
+          authorElt.textContent = transition.data.owner;
+          return transition.transition({ from: images[0], to: images[1] }, 2000)
+            .delay(500) // we pause 0.5 second before the next image
+            .then(function (stats) {
+              var nextTransitionIndex = transitionIndex+1 < transitions.length ? transitionIndex+1 : 0;
+              images.push(images.shift()); // Move first element at the end.
+              return loop(nextTransitionIndex);
+            });
+        })(0);
+
+      })
+      .done();
+
+    function filterWithoutCustomSampler2D (transitions, mapFilter) {
+      return transitions.filter(function (t) {
+        for (var k in t.uniforms)
+          if (typeof t.uniforms[k] === "string")
+            return false;
+        return true;
+      }).map(mapFilter).filter(function (t) { return !!t; });
+    }
+
+    // Image Loader. See also "qimage" : https://github.com/gre/qimage
+    function loadImage (src) {
+      var d = GlslTransition.Q.defer();
+      var img = new Image();
+      img.crossOrigin = "Anonymous";
+      img.onload = function (e) { d.resolve(img); };
+      img.onabort = img.onerror = d.reject;
+      img.src = src;
+      return d.promise;
+    }
+
+  }());</script>
+
+
+</body>
+</html>
