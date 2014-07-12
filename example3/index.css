@@ -1,0 +1,29 @@
+
+.logo{text-decoration:none;}.logo span:first-child{color:#fff}.logo span:last-child{color:#fc6}
+html,body {
+  background: #222;
+  color: #eee;
+  font-family: nunito;
+}
+a {
+  color: #eee;
+}
+canvas {
+  background: #000;
+  border: 1px solid #000;
+}
+#slideshow {
+  position: relative;
+  color: #fff;
+  text-shadow: 0px 0px 1px #000;
+  margin: 50px 0;
+}
+#slideshow .title {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+}
+#wrapper {
+  margin: 0 auto;
+  width: 512px;
+}
