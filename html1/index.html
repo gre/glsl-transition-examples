@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WebGL Transitions</title>
+  <link rel="stylesheet" href="index.css" type="text/css">
+</head>
+<body>
+  <a href="https://github.com/glslio/glsl-transition-examples"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/52760788cde945287fbb584134c4cbc2bc36f904/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f77686974655f6666666666662e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_white_ffffff.png"></a>
+
+  <div id="wrapper">
+
+    <h1>
+      <a href="https://glsl.io/" class="logo" target="_blank">
+        <span>GLSL</span><span>.io</span>
+        Transitions
+      </a>
+      +
+      <a class="rasterizeHTML" href="https://cburgmer.github.io/rasterizeHTML.js/" target="_blank">
+        rasterizeHTML.js
+      </a>
+    </h1>
+
+    <h2>
+      = WebGL Transitions performed on HTML !!!
+    </h2>
+    
+    <div id="slideshow">
+      <canvas id="viewport" width=700 height=500></canvas>
+    </div>
+
+    <h3>How does this work?</h3>
+
+    <p>
+      HTML Pages are rendered by <a href="https://cburgmer.github.io/rasterizeHTML.js/">rasterizeHTML.js</a> and piped into <a href="https://github.com/gre/glsl-transition">glsl-transition</a>:
+    </p>
+
+    <p>
+    Here are the list of pages:
+    </p>
+    <ul id="subpages"></ul>
+
+    <p>
+      And here are the intermediary rasterised images:
+    </p>
+
+    <div id="intermediaries"></div>
+
+  </div>
+
+  <script src="rasterizeHTML.allinone.js"></script>
+  <script src="../glsl-transition.js"></script>
+  <script src="../glsl-transitions.js"></script>
+  <script>
+    var PAGES = [
+      "Motherfucking_Website.html",
+      "article1.html",
+      "Hacker_News.html"
+    ];
+    PAGES.forEach(function (url) {
+      var li = document.createElement("li");
+      li.innerHTML='<a href="'+url+'" target="_blank">'+url+'</a>';
+      subpages.appendChild(li);
+    });
+
+    var canvas = document.getElementById("viewport");
+
+    // Load the pages
+    var HtmlPromises = PAGES.map(function (url) {
+      var width = canvas.width;
+      var height = canvas.height;
+      return rasterizeHTML.drawURL(url, {
+        width: width,
+        height: height
+      }).then(function (result) {
+        var copy = document.createElement("canvas");
+        copy.width = width;
+        copy.height = height;
+        var ctx = copy.getContext("2d");
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(result.image, 0, 0);
+        intermediaries.appendChild(copy);
+        return copy;
+      });
+    });
+
+
+    // Load the transitions
+    var Transition = GlslTransition(canvas);
+    var transitions = filterWithoutCustomSampler2D(GlslTransitions, function (t) {
+      try {
+        return { transition: Transition(t.glsl, t.uniforms), data: t };
+      }
+      catch (e) {
+        console.error(e.stack);
+        console.log(t);
+      }
+    }).sort(function () { return Math.random() - 0.5; });
+
+    // When everything is ready, we can loop over the HTML in a slideshow !
+    GlslTransition.Q.all(HtmlPromises).then(function start (images) {
+
+      return (function loop (transitionIndex) {
+        var transition = transitions[transitionIndex];
+        return transition.transition({ from: images[0], to: images[1] }, 2000)
+          .delay(500) // we pause 0.5 second before the next image
+          .then(function (stats) {
+            var nextTransitionIndex = transitionIndex+1 < transitions.length ? transitionIndex+1 : 0;
+            images.push(images.shift()); // Move first element at the end.
+            return loop(nextTransitionIndex);
+          });
+      })(0);
+
+    }).done();
+
+
+
+    /////// UTILITIES ///////
+
+
+    function filterWithoutCustomSampler2D (transitions, mapFilter) {
+      return transitions.filter(function (t) {
+        for (var k in t.uniforms)
+          if (typeof t.uniforms[k] === "string")
+            return false;
+        return true;
+      }).map(mapFilter).filter(function (t) { return !!t; });
+    }
+  </script>
+</body>
+</html>
