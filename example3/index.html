@@ -37,7 +37,9 @@
     var authorElt = document.querySelector("#slideshow .author");
     var Transition = GlslTransition(canvas);
 
-    var transitions = filterWithoutCustomSampler2D(GlslTransitions, function (t) {
+    var transitions = filterWithoutCustomSampler2D(GlslTransitions.sort(function (a, b) {
+      return b.stars - a.stars;
+    }), function (t) {
       try {
         return { transition: Transition(t.glsl, t.uniforms), data: t };
       }
